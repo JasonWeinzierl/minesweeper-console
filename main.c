@@ -190,6 +190,7 @@ main(int argc, char *argv[])
             break;
         case 2:
             printf("Custom Difficulties are not supported for high scores.\n");
+            /* FALLTHROUGH */
         default:
             
             printScores();
@@ -220,7 +221,7 @@ validateArgs(int argc, char *argv[])
         // difficulty does not exist
         if (option <= 0 || option > 3)
         {
-            fprintf(stderr, "Usage: ./minesweeper [difficulty=1,2,3]\n");
+            fprintf(stderr, "Usage: ./minesweeper.out [difficulty=1,2,3]\n");
             return 0;
         }
 
@@ -232,7 +233,7 @@ validateArgs(int argc, char *argv[])
     // incorrect number of args
     if (argc != 4)
     {
-        fprintf(stderr, "Usage: ./minesweeper [rows] [columns] [num_mines]\n");
+        fprintf(stderr, "Usage: ./minesweeper.out [rows] [columns] [num_mines]\n");
         return 0;
     }
 
@@ -790,6 +791,7 @@ createScoreFile(void)
     }
     else
     {
+        printf("Creating new high score file... ");
         // make array of difficulties
         Difficulty d[NUM_DIFFICULTIES];
         int i;
@@ -815,6 +817,7 @@ createScoreFile(void)
         if (fclose(fp) == EOF)
             return 0;
 
+        printf("Done!\n");
         return 1;
     }
 }
