@@ -66,6 +66,7 @@ int getHighScore(Scorecard);
 int setHighScore(Scorecard);
 int equalsDifficulty(Difficulty, Difficulty);
 void printScores(void);
+int createScoreFile(void);
 
 /**
  * returns 2 on program error,
@@ -643,25 +644,10 @@ getHighScore(Scorecard scorecard)
     FILE *fp = fopen("scores.bin", "rb");
     if (fp == NULL)
     {
-        fp = fopen("scores.bin", "wb");
-        if (fp == NULL)
+        if (!createScoreFile())
             return -1;
 
-        // write number
-        int n = NUM_DIFFICULTIES;
-        fwrite(&n, sizeof n, 1, fp);
-
-        // write default scorecards
-        for (i = 0; i < n; i++)
-        {
-            struct _scorecard s = (struct _scorecard){INT_MAX, DBL_MAX, d[i]};
-            fwrite(&s, sizeof(struct _scorecard), 1, fp);
-        }
-
-        // close writing mode and open in reading mode
-        if (fclose(fp) == EOF)
-            return -1;
-
+        // open in reading mode
         fp = fopen("scores.bin", "rb");
         if (fp == NULL)
             return -1;
@@ -699,9 +685,18 @@ getHighScore(Scorecard scorecard)
 int
 setHighScore(Scorecard scorecard)
 {
+    // open or create highscore file
     FILE *fp = fopen("scores.bin", "rb+");
     if (fp == NULL)
-        return -1;
+    {
+        if (!createScoreFile())
+            return -1;
+
+        // open in reading mode
+        fp = fopen("scores.bin", "rb+");
+        if (fp == NULL)
+            return -1;
+    }
 
     int i, n;
     fread(&n, sizeof n, 1, fp);
@@ -744,11 +739,23 @@ equalsDifficulty(Difficulty d1, Difficulty d2)
 void
 printScores(void)
 {
+    // open or create highscore file
     FILE *fp = fopen("scores.bin", "rb");
     if (fp == NULL)
     {
-        fprintf(stderr, "Error opening scores.bin\n");
-        return;
+        if (!createScoreFile())
+        {
+            fprintf(stderr, "Error opening scores.bin\n");
+            return;
+        }
+
+        // open in reading mode
+        fp = fopen("scores.bin", "rb");
+        if (fp == NULL)
+        {
+            fprintf(stderr, "Error opening scores.bin\n");
+            return;
+        }
     }
 
     printf("___HIGH_SCORES___\n");
@@ -766,4 +773,48 @@ printScores(void)
     if (fclose(fp) == EOF)
         fprintf(stderr, "Error closing scores.bin\n");
     return;
+}
+
+/**
+ * returns 1 on file created/already exists
+ * returns 0 if error
+ */
+int
+createScoreFile(void)
+{
+    FILE *fp;
+    if ((fp = fopen("scores.bin", "rb")) != NULL)
+    {
+        fclose(fp);
+        return 1;
+    }
+    else
+    {
+        // make array of difficulties
+        Difficulty d[NUM_DIFFICULTIES];
+        int i;
+        for (i = 0; i < NUM_DIFFICULTIES; i++)
+            d[i] = newDifficulty(i + 1);
+
+        fp = fopen("scores.bin", "wb");
+        if (fp == NULL)
+            return 0;
+
+        // write number
+        int n = NUM_DIFFICULTIES;
+        fwrite(&n, sizeof n, 1, fp);
+
+        // write default scorecards
+        for (i = 0; i < n; i++)
+        {
+            struct _scorecard s = (struct _scorecard){INT_MAX, DBL_MAX, d[i]};
+            fwrite(&s, sizeof(struct _scorecard), 1, fp);
+        }
+
+        // close writing mode
+        if (fclose(fp) == EOF)
+            return 0;
+
+        return 1;
+    }
 }
