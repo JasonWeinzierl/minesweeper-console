@@ -2,71 +2,20 @@
  * File:   main.c
  * Author: Jason Weinzierl
  *
- * Initially created on October 6, 2015, 11:58 AM
+ * Created 6 October 2015, 11:58
  *
  * High scores are saved "scores.bin".  It must
  * be deleted if the preset difficulties are modified.
- *
- * This would be neater in an OOP language.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>       // timer functions
-#include <limits.h>     // INT_MAX
-#include <float.h>      // DBL_MAX
+#include <time.h>
+#include <limits.h>
+#include <float.h>
 
-#define NUM_DIFFICULTIES 3
-
-// this is a pass-by-value struct for the board difficulty
-typedef struct _difficulty
-{
-    int rows;
-    int columns;
-    int num_mines;
-} Difficulty;
-
-typedef struct _square
-{
-    int surroundingMines;
-    int isCovered;
-    int isAMine;
-} Square;
-
-typedef struct _board
-{
-    Square **squares;
-    int rows;
-    Difficulty difficulty;
-    int moves;
-} *Board;
-
-typedef struct _scorecard
-{
-    int moves;
-    double time;
-    Difficulty difficulty;
-} *Scorecard;
-
-int validateArgs(int argc, char *argv[]);
-Difficulty newDifficulty(int);
-int getInt(int *);
-void randomizeSquares(Board);
-Board newBoard(Difficulty);
-int countMines(Board, int, int);
-void printBoard(Board);
-void printUncoveredBoard(Board);
-int updateBoard(Board, int, int);
-void uncoverNeighbors(Board, int, int);
-int checkGameState(Board);
-void printVictoryBoard(Board);
-void printColumnHeader(Board);
-void freeBoard(Board);
-int getHighScore(Scorecard);
-int setHighScore(Scorecard);
-int equalsDifficulty(Difficulty, Difficulty);
-void printScores(void);
-int createScoreFile(void);
+#include "main.h"
+#include "display.h"
 
 /**
  * returns 2 on program error,
@@ -77,7 +26,7 @@ int
 main(int argc, char *argv[])
 {
     // make sure command line arguments are valid
-    if (!validateArgs(argc, argv))
+    if (!isValidArgs(argc, argv))
         return 1;
 
     // user-set values
@@ -113,20 +62,20 @@ main(int argc, char *argv[])
     time(&start);
 
     // main loop
-    while(1)
+    while (1)
     {
-        printBoard(board);
+        printDefaultBoard(board);
         
         // get row
         printf("\n\nEnter the row of the space you want to hit: ");
         int row = -1;
         while (!getInt(&row) || row >= board->difficulty.rows || row < 0) // safely get int, and error check
         {
-            // CHEATER CHEATER PUMPKIN EATER
+            // CHEATER
             if (row == -42)
             {
-                diff = 69420.80085; // NO HIGH SCORE FOR YOU
-                goto VICTORY;   // YES I USED A GOTO STATEMENT
+                diff = 69420.80085; // no high score for cheaters
+                goto VICTORY;   // goto considered harmful
             }
             printf("Incorrect selection. Enter row: ");
         }
@@ -141,7 +90,7 @@ main(int argc, char *argv[])
         
         // hit desired space, check if u lose
         board->moves++;
-        if(updateBoard(board, row, column))
+        if (updateBoard(board, row, column))
         {
             // stop timer
             time(&end);
@@ -154,7 +103,7 @@ main(int argc, char *argv[])
         }
         
         // check if board is solved
-        if(checkGameState(board))
+        if (checkGameState(board))
         {
             // stop timer
             time(&end);
@@ -192,7 +141,6 @@ main(int argc, char *argv[])
             printf("Custom Difficulties are not supported for high scores.\n");
             /* FALLTHROUGH */
         default:
-            
             printScores();
             printf("Thank you for playing!\n");
     }
@@ -207,9 +155,9 @@ main(int argc, char *argv[])
  * returns 0 otherwise
  */
 int
-validateArgs(int argc, char *argv[])
+isValidArgs(int argc, char *argv[])
 {
-    // no args
+    // no args is ok
     if (argc == 1)
         return 1;
 
@@ -265,7 +213,7 @@ validateArgs(int argc, char *argv[])
         return 0;
     }
     // too many mines
-    if (num_mines >= rows * columns)
+    if (num_mines > rows * columns)
     {
         fprintf(stderr, "Amount of mines is not valid for given dimensions\n");
         return 0;
@@ -282,7 +230,7 @@ Difficulty
 newDifficulty(int option)
 {
     Difficulty d = (Difficulty){0, 0, 0};
-    switch(option)
+    switch (option)
     {
         case 1: // easy
             d = (Difficulty){8, 8, 10};
@@ -328,10 +276,10 @@ randomizeSquares(Board board)
 {
     // populate board with mines
     srand(time(NULL));
-    int i;
-    for (i = 0; i < board->difficulty.num_mines; i++)
+    int i, n;
+    int r, c;   // random square
+    for (i = 1, n = board->difficulty.num_mines; i <= n; i++)
     {
-        int r, c;   // random square
         do
         {
             // get random square
@@ -345,9 +293,9 @@ randomizeSquares(Board board)
     }
     
     // fill in remaining squares
-    for (i = 0; i < board->difficulty.rows; i++)
+    int j;
+    for (i = 0, n = board->difficulty.rows; i < n; i++)
     {
-        int j;
         for (j = 0; j < board->difficulty.columns; j++)
         {
             // if current square is NOT a mine
@@ -396,17 +344,17 @@ int
 countMines(Board board, int row, int column)
 {
     int surroundingMines = 0;
-    int i;
+    int i, j;
+    int r, c;
     for (i = -1; i <= 1; i++) // loop vertically adjacent squares relative to given square
     {
-        int j;
         for (j = -1; j <= 1; j++)   // loop horizontally adjacent squares
         {
-            int r = row + i;    // nearby row
-            int c = column + j; // nearby column
-            if (r >= 0 && c >= 0 && r < board->difficulty.rows && c < board->difficulty.columns)  // make sure we aren't out of bounds of the board
+            r = row + i;    // nearby row
+            c = column + j; // nearby column
+            if (isInBounds(r, c, board->difficulty))    // make sure we aren't out of bounds of the board
             {
-                if (board->squares[r][c].isAMine == 1)               // if the nearby square is a mine
+                if (board->squares[r][c].isAMine == 1)  // if the nearby square is a mine
                     surroundingMines++;  // increment the surrounding mines counter
             }
         }
@@ -416,110 +364,13 @@ countMines(Board board, int row, int column)
 }
 
 /**
- * prints the board using ANSI escape sequences
+ * 1 if in bounds of difficulty's board
+ * 0 if out of bounds
  */
-void
-printBoard(Board b)
+int
+isInBounds(int row, int column, Difficulty d)
 {
-    printColumnHeader(b);
-    int i, j;
-    for (i = 0; i < b->difficulty.rows; i++)
-    {
-        printf("\x1B[0m\n%2d|", i);
-        for (j = 0; j < b->difficulty.columns; j++)
-        {
-            if (b->squares[i][j].isCovered == 1)
-            {
-                printf("\x1B[0mx ");
-            }
-            else if (b->squares[i][j].surroundingMines == 0) 
-            {
-                printf("\x1B[32m0 ");
-            }
-            else
-            {
-                printf("\x1B[33m%d ", b->squares[i][j].surroundingMines);
-            }
-        }
-    }
-    printf("\x1B[0m");  // turn off attributes
-}
-
-/**
- * game over display
- */
-void
-printUncoveredBoard(Board b)
-{
-    printColumnHeader(b);
-    int i, j;
-    for(i = 0; i < b->difficulty.rows; i++)
-    {
-        printf("\x1B[0m\n%2d|", i);
-        for(j = 0; j < b->difficulty.columns; j++)
-        {
-            if(b->squares[i][j].isAMine)
-            {
-                printf("\x1B[01;31mM ");
-            }
-            else if (b->squares[i][j].surroundingMines == 0) 
-            {
-                printf("\x1B[00;32m0 ");
-            }
-            else
-            {
-                printf("\x1B[00;33m%d ", b->squares[i][j].surroundingMines);
-            }
-        }
-    }
-    printf("\x1B[0m");
-}
-
-/**
- * reveals mines to winner
- */
-void
-printVictoryBoard(Board b)
-{
-    printColumnHeader(b);
-    int i, j;
-    for(i = 0; i < b->difficulty.rows; i++)
-    {
-        printf("\x1B[0m\n%2d|", i);
-        for(j = 0; j < b->difficulty.columns; j++)
-        {
-            if(b->squares[i][j].isAMine)
-            {
-                printf("\x1B[01;36mX ");
-            }
-            else if (b->squares[i][j].surroundingMines == 0) 
-            {
-                printf("\x1B[00;32m0 ");
-            }
-            else
-            {
-                printf("\x1B[00;33m%d ", b->squares[i][j].surroundingMines);
-            }
-        }
-    }
-    printf("\x1B[0m");
-}
-
-/**
- * prints header of board with varying colors for column numbers
- */
-void
-printColumnHeader(Board b)
-{
-    int i;
-    printf("\x1B[0m\n\n  _");
-    for (i = 0; i < b->difficulty.columns; i++)
-    {
-        printf("\x1B[01;3%dm", (i % 2) ? 7 : 0);
-        printf("%d", i);
-        if (i < 10)
-            printf("\x1B[0m_");
-    }
+    return row >= 0 && column >= 0 && row < d.rows && column < d.columns;
 }
 
 /**
@@ -737,45 +588,6 @@ equalsDifficulty(Difficulty d1, Difficulty d2)
    return 1;
 }
 
-void
-printScores(void)
-{
-    // open or create highscore file
-    FILE *fp = fopen("scores.bin", "rb");
-    if (fp == NULL)
-    {
-        if (!createScoreFile())
-        {
-            fprintf(stderr, "Error opening scores.bin\n");
-            return;
-        }
-
-        // open in reading mode
-        fp = fopen("scores.bin", "rb");
-        if (fp == NULL)
-        {
-            fprintf(stderr, "Error opening scores.bin\n");
-            return;
-        }
-    }
-
-    printf("___HIGH_SCORES___\n");
-
-    int i, n;
-    fread(&n, sizeof n, 1, fp);
-    printf("_Difficulties:_%d_\n", n);
-    for (i = 0; i < n; i++)
-    {
-        struct _scorecard s;
-        fread(&s, sizeof(struct _scorecard), 1, fp);
-        printf("Level %d: TIME: %.2f\n\tMoves: %d\n\tBoard: %dx%d\n\tMines: %d\n", i + 1, s.time, s.moves, s.difficulty.rows, s.difficulty.columns, s.difficulty.num_mines);
-    }
-
-    if (fclose(fp) == EOF)
-        fprintf(stderr, "Error closing scores.bin\n");
-    return;
-}
-
 /**
  * returns 1 on file created/already exists
  * returns 0 if error
@@ -821,3 +633,4 @@ createScoreFile(void)
         return 1;
     }
 }
+
