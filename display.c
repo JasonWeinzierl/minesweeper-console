@@ -8,13 +8,14 @@
 #include <stdio.h>
 
 #include "display.h"
+#include "scorecard.h"
 
 /**
  * prints the board using ANSI escape sequences
  * status: 1 for default, 2 for fail, 3 for victory
  */
 void
-printBoard(Board b, int status)
+printBoard(Board *b, int status)
 {
     printColumnHeader(b);
     int i, j;
@@ -88,7 +89,7 @@ printSquare(char contents, int type)
  * prints default board
  */
 void
-printDefaultBoard(Board b)
+printDefaultBoard(Board *b)
 {
     printBoard(b, 1);
 }
@@ -97,7 +98,7 @@ printDefaultBoard(Board b)
  * game over display
  */
 void
-printUncoveredBoard(Board b)
+printUncoveredBoard(Board *b)
 {
     printBoard(b, 2);
 }
@@ -106,7 +107,7 @@ printUncoveredBoard(Board b)
  * reveals mines to winner
  */
 void
-printVictoryBoard(Board b)
+printVictoryBoard(Board *b)
 {
     printBoard(b, 3);
 }
@@ -115,7 +116,7 @@ printVictoryBoard(Board b)
  * prints header of board with varying colors for column numbers
  */
 void
-printColumnHeader(Board b)
+printColumnHeader(Board *b)
 {
     int i;
     printf("\x1B[0m\n\n  _");

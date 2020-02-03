@@ -3,9 +3,9 @@ CFLAGS=-g -Wall -Wextra -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-al
 
 ODIR=obj
 
-DEPS=game.h main.h display.h
+DEPS=main.h display.h board.h scorecard.h difficulty.h square.h
 
-_OBJ=main.o display.o
+_OBJ=main.o display.o board.o scorecard.o difficulty.o
 OBJ=$(patsubst %,$(ODIR)/%,$(_OBJ))
 
 all: minesweeper.out
