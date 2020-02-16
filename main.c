@@ -167,18 +167,7 @@ isValidArgs(int argc, char *argv[])
 
     // preset difficulty selector
     if (argc == 2)
-    {
-        int option = atoi(argv[1]);
-        
-        // difficulty does not exist
-        if (option <= 0 || option > NUM_DIFFICULTIES)
-        {
-            fprintf(stderr, "Usage: ./minesweeper.out [difficulty=1,2,3]\n");
-            return 0;
-        }
-
-        return 1;
-    }
+        return isValidDifficultyNum(argv[1]);
 
     // custom difficulty
 
@@ -189,33 +178,56 @@ isValidArgs(int argc, char *argv[])
         return 0;
     }
 
-    // incorrect first arg
+    return isValidCustomDifficulty(argv);
+}
+
+int
+isValidDifficultyNum(char *arg)
+{
+    int option = atoi(arg);
+    
+    // difficulty does not exist
+    if (option <= 0 || option > NUM_DIFFICULTIES)
+    {
+        fprintf(stderr, "Usage: ./minesweeper.out [difficulty=1,2,3]\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+int
+isValidCustomDifficulty(char *argv[])
+{
+    int isValid = 1;
+
     int rows = atoi(argv[1]);
-    if (rows <= 0)
+    if (!isValidNumRows(rows))
     {
         fprintf(stderr, "\"%s\" is not a valid row size\n", argv[1]);
         return 0;
     }
-    // incorrect second arg
+
     int columns = atoi(argv[2]);
-    if (columns <= 0)
+    if (!isValidNumColumns(columns))
     {
         fprintf(stderr, "\"%s\" is not a valid column size\n", argv[2]);
         return 0;
     }
-    // incorrect dimensions (overflow or too big)
-    if (rows * columns <= 0 || rows * columns >= 10000)
+
+    if (!isValidDimensions(rows, columns))
     {
         fprintf(stderr, "Dimensions %dx%d are not valid\n", rows, columns);
         return 0;
     }
-    // incorrect third arg
+
     int num_mines = atoi(argv[3]);
-    if (num_mines <= 0)
+    if (!isValidNumMines(num_mines))
     {
         fprintf(stderr, "\"%s\" is not a valid amount of mines\n", argv[3]);
         return 0;
     }
+
     // too many mines
     if (num_mines > rows * columns)
     {
@@ -224,7 +236,32 @@ isValidArgs(int argc, char *argv[])
     }
 
     return 1;
+}
 
+int
+isValidNumRows(int rows)
+{
+    return rows > 0;
+}
+
+int
+isValidNumColumns(int columns)
+{
+    return columns > 0;
+}
+
+int
+isValidDimensions(int rows, int columns)
+{
+    int area = rows * columns;
+    return area > 0
+        && area < 10000;
+}
+
+int
+isValidNumMines(int num_mines)
+{
+    return num_mines > 0;
 }
 
 /**

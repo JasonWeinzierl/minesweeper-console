@@ -9,9 +9,6 @@
 
 #include "difficulty.h"
 
-/**
- * returns a difficulty based on given integer
- */
 Difficulty
 newDifficulty(int option)
 {
@@ -40,30 +37,20 @@ newDifficulty(int option)
     }
 }
 
-/**
- * 1 if in bounds of difficulty's board
- * 0 if out of bounds
- */
 int
 isInBounds(int row, int column, Difficulty d)
 {
-    return row >= 0 && column >= 0 && row < d.rows && column < d.columns;
+    return row >= 0
+        && column >= 0
+        && row < d.rows
+        && column < d.columns;
 }
 
-/**
- * returns 1 on equal,
- * 0 otherwise
- */
 int
 equalsDifficulty(Difficulty d1, Difficulty d2)
 {
-   if (d1.rows != d2.rows)
-       return 0;
-   if (d1.columns != d2.columns)
-       return 0;
-   if (d1.num_mines != d2.num_mines)
-       return 0;
-
-   return 1;
+    return d1.rows == d2.rows
+        && d1.columns == d2.columns
+        && d1.num_mines == d2.num_mines;
 }
 

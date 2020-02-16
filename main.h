@@ -9,6 +9,12 @@
 #define MAIN_H
 
 int isValidArgs(int argc, char *argv[]);
+int isValidDifficultyNum(char *arg);
+int isValidCustomDifficulty(char *argv[]);
+int isValidNumRows(int);
+int isValidNumColumns(int);
+int isValidDimensions(int rows, int columns);
+int isValidNumMines(int);
 int getInt(int *);
 
 #endif /* MAIN_H */
